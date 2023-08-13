@@ -14,50 +14,6 @@ nlsy <- read_csv(here::here("data", "raw", "nlsy.csv"),
 				 glasses_cat = factor(glasses, labels = c("No", "Yes")))
 
 
-# Customization of `tbl_summary()`
-
-tbl_summary(
-	nlsy,
-	by = sex_cat,
-	include = c(sex_cat, race_eth_cat, region_cat,
-							eyesight_cat, glasses, age_bir))
-
-
-tbl_summary(
-	nlsy,
-	by = sex_cat,
-	include = c(sex_cat, race_eth_cat, region_cat,
-							eyesight_cat, glasses, age_bir),
-	label = list(
-		race_eth_cat ~ "Race/ethnicity",
-		region_cat ~ "Region",
-		eyesight_cat ~ "Eyesight",
-		glasses ~ "Wears glasses",
-		age_bir ~ "Age at first birth"
-	),
-	missing_text = "Missing")
-
-
-tbl_summary(
-	nlsy,
-	by = sex_cat,
-	include = c(sex_cat, race_eth_cat,
-							eyesight_cat, glasses, age_bir),
-	label = list(
-		race_eth_cat ~ "Race/ethnicity",
-		eyesight_cat ~ "Eyesight",
-		glasses ~ "Wears glasses",
-		age_bir ~ "Age at first birth"
-	),
-	missing_text = "Missing") |>
-	add_p(test = list(all_continuous() ~ "t.test",
-										all_categorical() ~ "chisq.test")) |>
-	add_overall(col_label = "**Total**") |>
-	bold_labels() |>
-	modify_footnote(update = everything() ~ NA) |>
-	modify_header(label = "**Variable**", p.value = "**P**")
-
-
 # Univariate regression
 
 tbl_uvregression(
