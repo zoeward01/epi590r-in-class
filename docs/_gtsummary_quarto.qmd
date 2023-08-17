@@ -1,8 +1,10 @@
 ---
 title: "gtsummary in quarto"
-format: html
+format: 
+  html:
+    theme: journal
 execute: 
-  cache: true
+  cache: false
 ---
 
 ```{r}
@@ -17,6 +19,7 @@ A `r glasses_comparison` proportion of female (`r glasses_f`) than male (`r glas
 
 ```{r}
 #| output: false
+# output:false to remove all output (including the messages), message: false to remove messages, include: false to remove all output and code, 
 library(tidyverse)
 library(gtsummary)
 nlsy_cols <- c("glasses", "eyesight", "sleep_wkdy", "sleep_wknd", 
@@ -38,17 +41,28 @@ sleep_avg <- mean(nlsy$sleep_wkdy, na.rm = TRUE)
 
 The average hours of sleep was `r round(sleep_avg, 1)`
 
+I also really like to use the `scales::number()` function for formatting numbers: `scales::number(sleep_avg, accuracy = 0.1)` = `r scales::number(sleep_avg, accuracy = 0.1)`
+
 # Customization of `tbl_summary()`
 
 ```{r}
-tbl_summary(
+#| label: tbl-descriptive
+#| tbl-cap: "Descriptive statistics about the sample"
+table1 <- tbl_summary(
   nlsy,
   by = sex_cat,
   include = c(sex_cat, race_eth_cat, region_cat,
               eyesight_cat, glasses, age_bir))
+# have to print "table1" for it to be shown, and for the caption to show up
+table1
 ```
 
+As you can see in @tbl-descriptive, more female (`r inline_text(table1, variable = "glasses", column = "Female")`) than male (`r inline_text(table1, variable = "glasses", column = "Male")`) wear glasses. This is also shown in @tbl-nicer, in which the glasses label is capitalized.
+
+
 ```{r}
+#| label: tbl-nicer
+#| tbl-cap: "More nicely labeled descriptive statistics about the sample"
 tbl_summary(
   nlsy,
   by = sex_cat,
@@ -62,116 +76,4 @@ tbl_summary(
     age_bir ~ "Age at first birth"
   ),
   missing_text = "Missing")
-```
-
-```{r}
-tbl_summary(
-  nlsy,
-  by = sex_cat,
-  include = c(sex_cat, race_eth_cat,
-              eyesight_cat, glasses, age_bir),
-  label = list(
-    race_eth_cat ~ "Race/ethnicity",
-    eyesight_cat ~ "Eyesight",
-    glasses ~ "Wears glasses",
-    age_bir ~ "Age at first birth"
-  ),
-  missing_text = "Missing") |> 
-  add_p(test = list(all_continuous() ~ "t.test", 
-                    all_categorical() ~ "chisq.test")) |> 
-  add_overall(col_label = "**Total**") |> 
-  bold_labels() |> 
-  modify_footnote(update = everything() ~ NA) |> 
-  modify_header(label = "**Variable**", p.value = "**P**")
-```
-
-# Univariate regression
-
-```{r}
-tbl_uvregression(
-  nlsy, 
-  y = income,
-  include = c(sex_cat, race_eth_cat,
-              eyesight_cat, income, age_bir),
-  method = lm)
-```
-
-```{r}
-tbl_uvregression(
-  nlsy, 
-  y = glasses,
-  include = c(sex_cat, race_eth_cat,
-              eyesight_cat, glasses, age_bir),
-  method = glm,
-  method.args = list(family = binomial()),
-  exponentiate = TRUE)
-```
-
-## Multivariable regressions
-
-## Some regressions
-
-```{r}
-linear_model <- lm(income ~ sex_cat + age_bir + race_eth_cat, 
-                   data = nlsy)
-```
-
-```{r}
-linear_model_int <- lm(income ~ sex_cat*age_bir + race_eth_cat, 
-                   data = nlsy)
-```
-
-```{r}
-logistic_model <- glm(glasses ~ eyesight_cat + sex_cat + income, 
-                      data = nlsy, family = binomial())
-```
-
-## Tables
-
-```{r}
-tbl_regression(
-  linear_model, 
-  intercept = TRUE,
-  label = list(
-    sex_cat ~ "Sex",
-    race_eth_cat ~ "Race/ethnicity",
-    age_bir ~ "Age at first birth"
-  ))
-```
-
-```{r}
-tbl_regression(
-  logistic_model, 
-  exponentiate = TRUE,
-  label = list(
-    sex_cat ~ "Sex",
-    eyesight_cat ~ "Eyesight",
-    income ~ "Income"
-  ))
-```
-
-```{r}
-tbl_no_int <- tbl_regression(
-  linear_model, 
-  intercept = TRUE,
-  label = list(
-    sex_cat ~ "Sex",
-    race_eth_cat ~ "Race/ethnicity",
-    age_bir ~ "Age at first birth"
-  ))
-
-tbl_int <- tbl_regression(
-  linear_model_int, 
-  intercept = TRUE,
-  label = list(
-    sex_cat ~ "Sex",
-    race_eth_cat ~ "Race/ethnicity",
-    age_bir ~ "Age at first birth",
-    `sex_cat:age_bir` ~ "Sex/age interaction"
-  ))
-```
-
-```{r}
-tbl_merge(list(tbl_no_int, tbl_int), 
-          tab_spanner = c("**Model 1**", "**Model 2**"))
 ```
