@@ -4,7 +4,7 @@ library(broom)
 nlsy_cols <- c("glasses", "eyesight", "sleep_wkdy", "sleep_wknd",
 							 "id", "nsibs", "samp", "race_eth", "sex", "region",
 							 "income", "res_1980", "res_2002", "age_bir")
-nlsy <- read_csv(here::here("data", "raw", "nlsy.csv"),
+nlsy <- read_csv(here::here("data", "nlsy.csv"),
 								 na = c("-1", "-2", "-3", "-4", "-5", "-998"),
 								 skip = 1, col_names = nlsy_cols) |>
 	mutate(region_cat = factor(region, labels = c("Northeast", "North Central", "South", "West")),
@@ -31,9 +31,6 @@ bind_rows(
 		term = str_remove(term, model),
 		term = ifelse(term == "", model, term))
 
-logistic_model <- glm(glasses ~ eyesight_cat + sex_cat + income,
-											data = nlsy, family = binomial())
-
 tidy(logistic_model, conf.int = TRUE, exponentiate = TRUE) |>
 	tidycat::tidy_categorical(logistic_model, exponentiate = TRUE) |>
 	select(-c(3:5))
@@ -47,29 +44,3 @@ tidy(logistic_model, conf.int = TRUE, exponentiate = TRUE) |>
 	geom_errorbar() +
 	facet_grid(cols = vars(variable), scales = "free", space = "free") +
 	scale_y_log10()
-
-## Exercises
-
-eyes_binomial_model <- glm(glasses ~ eyesight_cat + sex_cat,
-													 data = nlsy, family = binomial(link = "log"))
-eyes_poisson_model <- glm(glasses ~ eyesight_cat + sex_cat,
-													data = nlsy, family = poisson(link = "log"))
-
-# usually I don't like adding packages in the middle of a script,
-# but I'll do it here to be clear what they're used for
-library(sandwich)
-library(lmtest)
-
-both_models <- bind_rows(
-	binomial = tidy(eyes_binomial_model, conf.int = TRUE),
-	poisson = tidy(coeftest(eyes_poisson_model, vcov = vcovHC, type = "HC1"), conf.int = TRUE),
-	.id = "model"
-) |>
-	# coeftest doesn't allow you to exponentiate, so do it here
-	mutate(across(c(estimate, conf.low, conf.high), exp))
-
-# compare estimates and CIs directly
-both_models |>
-	select(-std.error, -statistic, -p.value) |>
-	pivot_wider(values_from = c(estimate, conf.low, conf.high),
-						names_from = model)
