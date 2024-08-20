@@ -1,5 +1,6 @@
 library(tidyverse)
 library(gtsummary)
+library(broom.helpers)
 
 nlsy_cols <- c("glasses", "eyesight", "sleep_wkdy", "sleep_wknd",
 							 "id", "nsibs", "samp", "race_eth", "sex", "region",
@@ -95,3 +96,69 @@ tbl_int <- tbl_regression(
 
 tbl_merge(list(tbl_no_int, tbl_int),
 					tab_spanner = c("**Model 1**", "**Model 2**"))
+
+
+
+
+
+
+# Create a univariate regression table looking at the association between sex (sex_cat)
+#as the x = variable and each of nsibs, sleep_wkdy, and sleep_wknd, and income.
+tbl_uvregression(
+	nlsy_cc,
+	x = sex_cat,
+	include = c(nsibs, sleep_wkdy, sleep_wknd, income),
+	method = lm)
+
+#Fit a Poisson regression (family = poisson()) for the number of siblings, using at
+#least 3 predictors of your choice. Create a nice table displaying your Poisson regression and its
+#exponentiated coefficients.
+tbl_uvregression(
+	nlsy_cc,
+	x = nsibs,
+	include = c(nsibs, sleep_wkdy, sleep_wknd, income),
+	method = lm,
+	family = poisson())
+
+#Instead of odds ratios for wearing glasses, as in the example, we want risk ratios. We can do
+#this by specifying in the regression family = binomial(link = "log"). Regress glasses on eyesight_cat
+#sex_cat and create a table showing the risk ratios and confidence intervals from this regression.
+logistic_model <- glm(glasses ~ eyesight_cat + sex_cat,
+											data = nlsy_cc, family = binomial(link = "log"))
+log_binomial <- tbl_regression(
+	logistic_model,
+	exponentiate = TRUE,
+	label = list(
+		sex_cat ~ "Sex",
+		eyesight_cat ~ "Eyesight"
+	))
+
+
+#Since family = binomial(link = "log") often doesn’t converge, we often use Poisson regression with robust
+#standard errors to estimate risk ratios. Fit a Poisson regression instead of the log-binomial regression in
+#the last question. Then create a table using tidy_fun = partial(tidy_robust, vcov = "HC1"). It will prompt
+#you to install new package(s) (yes!). See this page for more on custom tidiers.
+
+logistic_model <- glm(glasses ~ eyesight_cat + sex_cat,
+											data = nlsy_cc, family = poisson())
+log_poisson <- tbl_regression(
+	logistic_model,
+	exponentiate = TRUE,
+	label = list(
+		sex_cat ~ "Sex",
+		eyesight_cat ~ "Eyesight"
+	))
+tidy_fun = partial(tidy_robust, vcov = "HC1")
+
+
+
+#Make a table comparing the log-binomial and the log-Poisson results.
+
+tbl_merge(list(log_binomial, log_poisson),
+					tab_spanner = c("**Binomial**", "**Poisson**"))
+
+
+
+
+
+

@@ -48,3 +48,70 @@ tidy(logistic_model, conf.int = TRUE, exponentiate = TRUE) |>
 	geom_errorbar() +
 	facet_grid(cols = vars(variable), scales = "free", space = "free") +
 	scale_y_log10()
+
+
+#In the last set of exercises, you compared a log-binomial model to a log-Poisson model with robust
+#standard errors using {gtsummary}. Your job now is to do the same using broom::tidy(). You’ll need some
+#extra packages, though, because if you look at the broom::tidy() documentation, it doesn’t say anything
+#about adding robust standard errors. The answer, then, is usually to start Googling. I’ve done so for you
+#and found this post (I highly recommend all of Andrew Heiss’s R and statistics explanations!). Use this as
+#a guide to create a dataframe with the results from both models (you can use bind_rows() to combine them,
+#as in the example).Return to your final project. You are going to need to do some type of modeling and
+#create some tables and figures, so this is a good time to start playing around!
+
+logistic_model <- glm(glasses ~ eyesight_cat + sex_cat,
+											data = nlsy_cc, family = binomial(link = "log"))
+log_binomial <- tbl_regression(
+	logistic_model,
+	exponentiate = TRUE,
+	label = list(
+		sex_cat ~ "Sex",
+		eyesight_cat ~ "Eyesight"
+	))
+
+
+#Since family = binomial(link = "log") often doesn’t converge, we often use Poisson regression with robust
+#standard errors to estimate risk ratios. Fit a Poisson regression instead of the log-binomial regression in
+#the last question. Then create a table using tidy_fun = partial(tidy_robust, vcov = "HC1"). It will prompt
+#you to install new package(s) (yes!). See this page for more on custom tidiers.
+logistic_model1 <- glm(glasses ~ eyesight_cat + sex_cat,
+											data = nlsy_cc, family = binomial(link = "log"))
+log_binomial <- tbl_regression(
+	logistic_model1,
+	exponentiate = TRUE,
+	label = list(
+		sex_cat ~ "Sex",
+		eyesight_cat ~ "Eyesight"
+	))
+
+logistic_model2 <- glm(glasses ~ eyesight_cat + sex_cat,
+											data = nlsy_cc, family = poisson())
+log_poisson <- tbl_regression(
+	logistic_model2,
+	exponentiate = TRUE,
+	label = list(
+		sex_cat ~ "Sex",
+		eyesight_cat ~ "Eyesight"),
+	tidy_fun = partial(tidy_robust, vcov = "HC1"))
+
+comparison <- tbl_merge(list(log_binomial, log_poisson),
+					tab_spanner = c("**Binomial**", "**Poisson**"))
+comparison
+dplyr::bind_rows(
+	sex_cat = tidy_sex_cat,
+	race_eth_cat = tidy_race_eth_cat,
+	eyesight_cat = tidy_eyesight_cat,
+	age_bir = tidy_age_bir, .id = "model") |>
+	dplyr::mutate(
+		term = stringr::str_remove(term, model),
+		term = ifelse(term == "", model, term))
+
+
+
+
+
+
+
+
+
+

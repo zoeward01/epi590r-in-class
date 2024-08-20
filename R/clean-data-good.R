@@ -34,3 +34,37 @@ if (!dir.exists(here::here("data", "clean"))) {
 
 # save the complete-case data
 write_rds(nlsy_cc, here::here("data", "clean", "nlsy-complete-cases.rds"))
+
+library(gtsummary)
+
+tbl_summary(
+	data = nlsy_cc,
+	by = sex_cat,
+	include = c(race_eth_cat, region_cat, income, starts_with("sleep")),
+	label = list(
+		race_eth_cat ~ "Race/ethnicity",
+		income ~ "Income",
+		region_cat ~ "Region",
+		sleep_wknd ~ "Sleep Weekend",
+		sleep_wkdy ~ "Sleep Weekday"
+	),
+	statistic = list(
+		income ~ "{p10}, {p90}",
+		starts_with("sleep") ~ "{min}, {max}"
+	),
+	digits = list(
+		income ~ 3,
+		starts_with("sleep") ~ 1
+	),
+	missing_text = "Missing"
+) |>
+	add_overall() |>
+	add_p() |>
+	modify_table_styling(
+		columns = label,
+		rows = label == "Race/ethnicity",
+		footnote = "https://www.nlsinfo.org/content/cohorts/nlsy79/topical-guide/household/race-ethnicity-immigration-data"
+	)
+
+
+
