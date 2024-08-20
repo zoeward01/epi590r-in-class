@@ -187,3 +187,4 @@ median <- inline_text(table2, variable = "sleep_wknd", column = "stat_0")
 ```
 
 The median number of hours of sleep on the weekend for all participants is (`r median`) hours.
+
