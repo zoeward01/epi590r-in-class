@@ -1,0 +1,189 @@
+---
+title: "gtsummary in quarto"
+format:
+  html:
+    theme: superhero
+execute:
+  echo: false
+---
+
+```{r}
+library(tidyverse)
+library(gtsummary)
+nlsy_cols <- c("glasses", "eyesight", "sleep_wkdy", "sleep_wknd", 
+               "id", "nsibs", "samp", "race_eth", "sex", "region", 
+               "income", "res_1980", "res_2002", "age_bir")
+nlsy <- read_csv(here::here("data", "raw", "nlsy.csv"), 
+                 na = c("-1", "-2", "-3", "-4", "-5", "-998"),
+                 skip = 1, col_names = nlsy_cols) |> 
+  mutate(region_cat = factor(region, labels = c("Northeast", "North Central", "South", "West")),
+         sex_cat = factor(sex, labels = c("Male", "Female")),
+         race_eth_cat = factor(race_eth, labels = c("Hispanic", "Black", "Non-Black, Non-Hispanic")),
+         eyesight_cat = factor(eyesight, labels = c("Excellent", "Very good", "Good", "Fair", "Poor")),
+         glasses_cat = factor(glasses, labels = c("No", "Yes"))) 
+```
+
+# Customization of `tbl_summary()`
+
+```{r}
+#| eval: false
+tbl_summary(
+  nlsy,
+  by = sex_cat,
+  include = c(sex_cat, race_eth_cat, region_cat,
+              eyesight_cat, glasses, age_bir))
+```
+
+```{r}
+#| label: tbl-one
+#| tbl-cap: "This is a great table"
+tbl_summary(
+  nlsy,
+  by = sex_cat,
+  include = c(sex_cat, race_eth_cat, region_cat,
+              eyesight_cat, glasses, age_bir),
+  label = list(
+    race_eth_cat ~ "Race/ethnicity",
+    region_cat ~ "Region",
+    eyesight_cat ~ "Eyesight",
+    glasses ~ "Wears glasses",
+    age_bir ~ "Age at first birth"
+  ),
+  missing_text = "Missing")
+
+```
+
+```{r}
+#| eval: false
+tbl_summary(
+	nlsy, 
+	by = sex_cat, 
+	include = c(sex_cat, race_eth_cat, region_cat, 
+						 						eyesight_cat, glasses, age_bir),
+  missing_text = "Missing")
+```
+
+```{r}
+stats <- tbl_summary(
+	data = nlsy,
+	by = sex_cat,
+	include = c(race_eth_cat, region_cat, income, starts_with("sleep")),
+	label = list(
+		race_eth_cat ~ "Race/ethnicity",
+		income ~ "Income",
+		region_cat ~ "Region",
+		sleep_wknd ~ "Sleep Weekend",
+		sleep_wkdy ~ "Sleep Weekday"
+	),
+	statistic = list(
+		income ~ "{p10}, {p90}",
+		starts_with("sleep") ~ "{mean}"
+	),
+	digits = list(
+		income ~ 3,
+		starts_with("sleep") ~ 1
+	),
+	missing_text = "Missing"
+) |>
+	add_overall() |>
+	add_p() |>
+	modify_table_styling(
+		columns = label,
+		rows = label == "Race/ethnicity",
+		footnote = "https://www.nlsinfo.org/content/cohorts/nlsy79/topical-guide/household/race-ethnicity-immigration-data"
+	)
+
+```
+
+```{r}
+
+inline_text(stats, variable = "sleep_wknd")
+```
+
+```{r}
+#| eval: false
+
+#| label: tbl-one
+#| tbl-cap: "This is a great table"
+knitr::kable(mtcars)
+
+```
+```{r}
+library(gtsummary)
+income_table <- tbl_uvregression(
+  nlsy,
+  y = income,
+  include = c(
+    sex_cat, race_eth_cat,
+    eyesight_cat, income, age_bir
+  ),
+  method = lm
+)
+
+
+```
+
+```{r}
+inline_text(income_table, variable = "age_bir")
+```
+
+```{r}
+#| label: tbl-descr
+#| tbl-cap: "Descriptive statistics"
+#| output-location: slide
+table1 <- tbl_summary(
+  nlsy,
+  by = sex_cat,
+  include = c(sex_cat, race_eth_cat, region_cat,
+              eyesight_cat, glasses, age_bir),
+  label = list(
+		race_eth_cat ~ "Race/ethnicity",
+		eyesight_cat ~ "Eyesight",
+		region_cat ~ "Region",
+		age_bir ~ "Age"
+	),) |> 
+  add_overall(last = TRUE)
+table1
+```
+```{r}
+all_glasses <- inline_text(table1, variable = "glasses", column = "stat_0",
+            pattern = "{n}/{N} ({p}%)")
+```
+(`r all_glasses`) wore glasses.
+
+```{r}
+glasses_f <- inline_text(table1, variable = "glasses", 
+                         column = "stat_2")
+glasses_m <- inline_text(table1, variable = "glasses", 
+                         column = "stat_1")
+```
+A greater proportion of female (`r glasses_f`) than male (`r glasses_m`) participants wore glasses.
+
+```{r}
+
+#| label: tbl-descr
+#| tbl-cap: "Descriptive statistics"
+#| output-location: slide
+table2 <- tbl_summary(
+  nlsy,
+  by = sex_cat,
+  include = c(sex_cat, race_eth_cat, region_cat,
+              eyesight_cat, glasses, age_bir, starts_with("sleep") ),
+  statistic = list(
+		starts_with("sleep") ~ "{median}"
+	),
+  label = list(
+		race_eth_cat ~ "Race/ethnicity",
+		eyesight_cat ~ "Eyesight",
+		region_cat ~ "Region",
+		age_bir ~ "Age"
+	),) |> 
+  add_overall(last = TRUE)
+table2
+```
+
+```{r}
+median <- inline_text(table2, variable = "sleep_wknd", column = "stat_0")
+```
+
+The median number of hours of sleep on the weekend for all participants is (`r median`) hours.
